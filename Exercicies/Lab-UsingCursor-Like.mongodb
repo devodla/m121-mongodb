@@ -1,0 +1,97 @@
+use('aggregations');
+
+db.movies.find({}, {
+  _id: 0,
+  "tomatoes.viewer.rating": 1
+});
+/**
+  Minha Query
+ */
+db.movies.aggregate([
+  {
+    $match: {
+      countries: "USA", 
+      "tomatoes.viewer.rating": { $gte: 3 },
+      cast: { $elemMatch: { $exists: true } }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      "tomatoes.viewer.rating": 1,
+      cast: 1
+    }
+  },
+  {
+    $addFields: {
+      num_favs: { 
+        $size: { 
+          $setIntersection: [ ["Sandra Bullock", "Tom Hanks", "Julia Roberts", "Kevin Spacey", "George Clooney"], "$cast" ] 
+        } 
+      }
+    }
+  },
+  {
+    $sort: {
+      num_favs: -1, "tomatoes.viewer.rating": -1, title: -1
+    }
+  },
+  {
+    $skip: 24
+  }, 
+  {
+    $limit: 1
+  }
+]).pretty();
+
+/**
+    Query do resultado
+ */
+
+var favorites = [
+  "Sandra Bullock",
+  "Tom Hanks",
+  "Julia Roberts",
+  "Kevin Spacey",
+  "George Clooney"];
+
+db.movies.aggregate([
+  {
+    $match: {
+      "tomatoes.viewer.rating": { $gte: 3 },
+      countries: "USA",
+      cast: {
+        $in: favorites
+      }
+    }
+  },
+  {
+    $project: {
+      _id: 0,
+      title: 1,
+      "tomatoes.viewer.rating": 1,
+      num_favs: {
+        $size: {
+          $setIntersection: [
+            "$cast",
+            favorites
+          ]
+        }
+      }
+    }
+  },
+  {
+    $sort: { 
+      num_favs: -1,
+      "tomatoes.viewer.rating": -1,
+      title: -1
+    }
+  },
+  {
+    $skip: 24
+  },
+  {
+    $limit: 1
+  }
+]).pretty();
